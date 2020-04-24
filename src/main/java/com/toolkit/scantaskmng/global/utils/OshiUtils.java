@@ -11,6 +11,9 @@ import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
 import oshi.util.FormatUtil;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.util.Arrays;
 
 public class OshiUtils {
@@ -69,10 +72,14 @@ public class OshiUtils {
             jsonObj.put("speed", FormatUtil.formatValue(net.getSpeed(), "bps"));
             jsonObj.put("IPv4", Arrays.toString(net.getIPv4addr()));
             jsonObj.put("IPv6", Arrays.toString(net.getIPv6addr()));
+            jsonObj.put("bytesRecv", FormatUtil.formatBytes(net.getBytesRecv()));
+            jsonObj.put("bytesSent", FormatUtil.formatBytes(net.getBytesSent()));
+            jsonObj.put("timeStamp", net.getTimeStamp());
+            jsonObj.put("packetsRecv", net.getPacketsRecv());
+            jsonObj.put("packetsSent", net.getPacketsSent());
 
             netWorkArray.add(jsonObj);
         }
-
 
         return netWorkArray;
     }

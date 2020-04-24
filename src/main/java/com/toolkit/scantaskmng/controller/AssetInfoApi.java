@@ -1,18 +1,13 @@
 package com.toolkit.scantaskmng.controller;
 
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
-import com.toolkit.scantaskmng.global.utils.MyUtils;
 import com.toolkit.scantaskmng.global.utils.SystemUtils;
-import com.toolkit.scantaskmng.service.AssetCollectScheduler;
 import com.toolkit.scantaskmng.service.AssetInfoDataService;
 import com.toolkit.scantaskmng.service.AssetInfoService;
-import org.apache.ibatis.annotations.Param;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.io.IOException;
 
 @CrossOrigin(origins = "*",maxAge = 3600)
 @RestController
@@ -24,11 +19,9 @@ public class AssetInfoApi {
     private ResponseHelper responseHelper;
     @Autowired
     private AssetInfoService assetInfoService;
-    @Autowired
-    AssetInfoDataService assetInfoDataService;
 
     @Autowired
-    AssetCollectScheduler assetCollectScheduler;
+    AssetInfoDataService assetInfoDataService;
 
     /**
      * 1.1 Get asset's all infos or some designated infos
@@ -58,10 +51,10 @@ public class AssetInfoApi {
      * @param types
      * @return
      */
-    @GetMapping(value = "/get-asset-info")
+    @GetMapping(value = "/get-resources")
     @ResponseBody
-    public Object getAssetInfo1(@RequestParam("types") String types) {
-        return assetInfoDataService.fetchAssetInfo(types);
+    public Object getResources(@RequestParam("types") String types) {
+        return assetInfoDataService.getAssetInfo(types);
     }
 
     /**
@@ -72,8 +65,10 @@ public class AssetInfoApi {
      */
     @GetMapping(value = "/start-task-acquire")
     @ResponseBody
-    public Object startTaskAcquire(@RequestParam("types") String types, @RequestParam("second_time") String secondTime) {
-        return assetCollectScheduler.startTask(null, types, secondTime);
+    public Object startTaskAcquire(@RequestParam("asset_uuid") String assetUuid,
+                                   @RequestParam("types") String types,
+                                   @RequestParam("second_time") String secondTime) {
+        return assetInfoDataService.startTask(assetUuid, types, secondTime);
     }
 
 }

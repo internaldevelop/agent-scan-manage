@@ -57,7 +57,7 @@ public class RSACoder {
 
     /**
      * 私钥加密
-     * @param data待加密数据
+     * @param data 待加密数据
      * @param key 密钥
      * @return byte[] 加密数据
      * */
@@ -76,7 +76,7 @@ public class RSACoder {
 
     /**
      * 公钥加密
-     * @param data待加密数据
+     * @param data 待加密数据
      * @param key 密钥
      * @return byte[] 加密数据
      * */

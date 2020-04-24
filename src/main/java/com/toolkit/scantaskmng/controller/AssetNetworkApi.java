@@ -1,6 +1,7 @@
 package com.toolkit.scantaskmng.controller;
 
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import com.toolkit.scantaskmng.service.AssetInfoDataService;
 import com.toolkit.scantaskmng.service.AssetNetworkService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,9 @@ public class AssetNetworkApi {
     private ResponseHelper responseHelper;
     @Autowired
     private AssetNetworkService assetNetworkService;
+    @Autowired
+    AssetInfoDataService assetInfoDataService;
+
 
     /**
      * 1.1 Get asset's all infos or some designated infos
@@ -27,6 +31,32 @@ public class AssetNetworkApi {
     @ResponseBody
     public Object getDelayInfo(@RequestParam("type") String type, @RequestParam("ip") String ip) {
         return assetNetworkService.getDelayInfo(type,ip);
+    }
+
+    /**
+     * 获取流量数据
+     * @param assetUuid
+     * @param types
+     * @param secondTime
+     * @return
+     */
+    @GetMapping(value="/get-network")
+    @ResponseBody
+    public Object getNetwork(@RequestParam("asset_uuid") String assetUuid,
+                             @RequestParam("types") String types,
+                             @RequestParam("second_time") String secondTime) {
+        return assetInfoDataService.startNetworkTask(assetUuid, types, secondTime);
+    }
+
+    /**
+     * 停止获取Network数据
+     * @param assetUuid
+     * @return
+     */
+    @GetMapping(value="/stop-get-network")
+    @ResponseBody
+    public Object stopGetNetwork(@RequestParam("asset_uuid") String assetUuid) {
+        return assetInfoDataService.stopNetWorkTask(assetUuid);
     }
 
 }
