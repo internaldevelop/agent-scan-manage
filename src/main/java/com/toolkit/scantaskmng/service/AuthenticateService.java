@@ -2,6 +2,7 @@ package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONObject;
 import com.sun.org.apache.xml.internal.security.utils.Base64;
+//import java.util.Base64;
 import com.toolkit.scantaskmng.global.algorithm.AESEncrypt;
 import com.toolkit.scantaskmng.global.algorithm.RSAEncrypt;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;

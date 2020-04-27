@@ -11,6 +11,7 @@
     <groupId>com.toolkit.scantaskmng</groupId>
     <artifactId>agent-scan-manage</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>agent-scan-manage</name>
     <description>agent-scan-manage project for Spring Boot</description>
 
