@@ -1,6 +1,7 @@
 package com.toolkit.scantaskmng.scantaskmanage;
 
-import com.sun.org.apache.xml.internal.security.utils.Base64;
+//import com.sun.org.apache.xml.internal.security.utils.Base64;
+import com.toolkit.scantaskmng.global.algorithm.Base64Coding;
 import sun.misc.BASE64Decoder;
 
 import javax.crypto.Cipher;
@@ -172,7 +173,7 @@ public class RSACoder {
             signature.initSign(privateKey);
             signature.update(content.getBytes("UTF-8"));
 
-            result = Base64.encode(signature.sign());
+            result = Base64Coding.encode(signature.sign());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -200,8 +201,10 @@ public class RSACoder {
             signature.initVerify(pubKey);
             signature.update(src.getBytes("UTF-8"));
 
+//            Base64Coding.encode(sign)
+//            Base64.decode(sign)
             // 验证签名是否正常
-            verfy = signature.verify(Base64.decode(sign));
+            verfy = signature.verify(sign);
 
         } catch (Exception e) {
             return verfy;
@@ -222,8 +225,8 @@ public class RSACoder {
         //byte[] publicKey = b;
         //私钥
         byte[] privateKey = RSACoder.getPrivateKey(keyMap);
-        System.out.println("公钥："+ Base64.encode(publicKey));
-        System.out.println("私钥："+Base64.encode(privateKey));
+        System.out.println("公钥："+ Base64Coding.encode(publicKey));
+        System.out.println("私钥："+Base64Coding.encode(privateKey));
 
         System.out.println("================密钥对构造完毕,甲方将公钥公布给乙方，开始进行加密数据的传输=============");
         String str="aattaggcctegthththfef/aat.mp4";
@@ -231,7 +234,7 @@ public class RSACoder {
         System.out.println("原文:"+str);
         //甲方进行数据的加密
         byte[] code1=RSACoder.encryptByPrivateKey(str.getBytes(), privateKey);
-        System.out.println("甲方 使用乙方私钥加密后的数据："+Base64.encode(code1));
+        System.out.println("甲方 使用乙方私钥加密后的数据："+Base64Coding.encode(code1));
         System.out.println("===========乙方使用甲方提供的公钥对数据进行解密==============");
         //乙方进行数据的解密
         byte[] decode1=RSACoder.decryptByPublicKey(code1, publicKey);
@@ -246,7 +249,7 @@ public class RSACoder {
         //乙方使用公钥对数据进行加密
         byte[] code2=RSACoder.encryptByPublicKey(str.getBytes(), publicKey);
         System.out.println("===========乙方使用公钥对数据进行加密==============");
-        System.out.println("加密后的数据："+Base64.encode(code2));
+        System.out.println("加密后的数据："+Base64Coding.encode(code2));
 
         System.out.println("=============乙方将数据传送给甲方======================");
         System.out.println("===========甲方使用私钥对数据进行解密==============");

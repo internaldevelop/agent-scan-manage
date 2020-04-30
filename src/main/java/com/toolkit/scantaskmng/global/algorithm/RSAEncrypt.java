@@ -1,6 +1,6 @@
 package com.toolkit.scantaskmng.global.algorithm;
 
-import com.sun.org.apache.xml.internal.security.utils.Base64;
+//import com.sun.org.apache.xml.internal.security.utils.Base64;
 
 import java.security.*;
 import java.security.interfaces.RSAPrivateKey;
@@ -94,7 +94,8 @@ public class RSAEncrypt {
             signature.initSign(privateKey);
             signature.update(content.getBytes(CHARSETTING));
 
-            result = Base64.encode(signature.sign());
+//            result = Base64.encode(signature.sign());
+            result = Base64Coding.encode(signature.sign());
 
         } catch (Exception e) {
             e.printStackTrace();

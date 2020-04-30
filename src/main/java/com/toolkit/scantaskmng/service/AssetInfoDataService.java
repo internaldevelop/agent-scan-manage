@@ -43,6 +43,7 @@ public class AssetInfoDataService {
     @Autowired
     ResponseHelper responseHelper;
 
+    private static String MAIN_SERVICE_NAME = "embed-terminal-dev";  //主服务名  fw-bend-server  embed-terminal
 
     @Bean
     public RestTemplate restTemplate() {
@@ -151,6 +152,7 @@ public class AssetInfoDataService {
         timerTask.setAssetUuid(assetUuid);
         timerTask.setFuture(future);
         timerTaskList.add(timerTask);
+        logger.info(assetUuid + "开始执行");
 
         return true;
     }
@@ -247,7 +249,7 @@ public class AssetInfoDataService {
                 Object responseObj = fetchAssetInfo(this.infoTypes);
 
                 if (responseObj != null) {
-                    String url = "http://" + mainServiceIp + ":10110/fw-bend-server/resources/setdata?datas={datas}&asset_uuid={asset_uuid}";
+                    String url = "http://" + mainServiceIp + ":10110/" + MAIN_SERVICE_NAME + "/resources/setdata?datas={datas}&asset_uuid={asset_uuid}";
 
                     Map<String, Object> param = new HashMap<>();
                     param.put("datas", responseObj);
@@ -281,7 +283,7 @@ public class AssetInfoDataService {
                 Object networkInfo = jsonObj.get("Network");
 
                 if (responseObj != null && networkInfo != null) {
-                    String url = "http://" + mainServiceIp + ":10110/fw-bend-server/network/setdata?datas={datas}&asset_uuid={asset_uuid}";
+                    String url = "http://" + mainServiceIp + ":10110/" + MAIN_SERVICE_NAME + "/network/setdata?datas={datas}&asset_uuid={asset_uuid}";
 
                     Map<String, Object> param = new HashMap<>();
                     param.put("datas", networkInfo);
@@ -292,11 +294,11 @@ public class AssetInfoDataService {
 
                     // 将节点的资产实时信息通过 websocket 广播到客户端
                     if (!ErrorCodeEnum.ERROR_OK.name().equals(responseBean.getCode())) {
-                        stopTask(assetUuid);  // 返回值不正确  停掉
+                        stopNetWorkTask(assetUuid);  // 返回值不正确  停掉
                     }
                 }
             } catch (Exception e) {
-                stopTask(assetUuid);
+                stopNetWorkTask(assetUuid);
                 e.printStackTrace();
             }
         }

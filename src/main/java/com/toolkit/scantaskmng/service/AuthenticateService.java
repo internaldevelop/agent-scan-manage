@@ -1,9 +1,10 @@
 package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONObject;
-import com.sun.org.apache.xml.internal.security.utils.Base64;
+//import com.sun.org.apache.xml.internal.security.utils.Base64;
 //import java.util.Base64;
 import com.toolkit.scantaskmng.global.algorithm.AESEncrypt;
+import com.toolkit.scantaskmng.global.algorithm.Base64Coding;
 import com.toolkit.scantaskmng.global.algorithm.RSAEncrypt;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
@@ -95,9 +96,11 @@ public class AuthenticateService {
             byte[] publicKey = RSAEncrypt.getPublicKey(keyMap);
             //私钥
             byte[] privateKey = RSAEncrypt.getPrivateKey(keyMap);
-            jsonObj.put("public_key", Base64.encode(publicKey));
+//            jsonObj.put("public_key", Base64.encode(publicKey));
+            jsonObj.put("public_key", Base64Coding.encode(publicKey));
 
-            this.createWrite(KEYSTORE_URL, KEYSTORE_NAME, Base64.encode(privateKey));  // 写入文件
+
+            this.createWrite(KEYSTORE_URL, KEYSTORE_NAME, Base64Coding.encode(privateKey));  // 写入文件
 
         } catch (Exception e) {
             e.printStackTrace();
