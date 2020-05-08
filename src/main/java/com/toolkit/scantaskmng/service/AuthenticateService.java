@@ -1,5 +1,6 @@
 package com.toolkit.scantaskmng.service;
 
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 //import com.sun.org.apache.xml.internal.security.utils.Base64;
 //import java.util.Base64;
@@ -8,6 +9,7 @@ import com.toolkit.scantaskmng.global.algorithm.Base64Coding;
 import com.toolkit.scantaskmng.global.algorithm.RSAEncrypt;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import com.toolkit.scantaskmng.global.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +19,7 @@ import org.springframework.web.client.RestTemplate;
 import sun.misc.BASE64Decoder;
 
 import java.io.*;
+import java.sql.Timestamp;
 import java.util.Map;
 
 @Component
@@ -45,30 +48,53 @@ public class AuthenticateService {
      * 设备指纹信息获取
      * @return
      */
-    public Object getFingerprint() {
+    public Object getFingerprint(String types) {
         JSONObject retObj = new JSONObject();
 
-        String types = "CPU";
+        if (!StringUtils.isValid(types)) {
+            types = "CPU,Network,SoundCards,Disks";  // 硬件、OS系统、应用软件（可选）、服务、网络（不含IP）、配置
+        }
+
         try {
             Object responseObj = assetInfoDataService.fetchAssetInfo(types);
 
             JSONObject jsonMsg = (JSONObject) JSONObject.toJSON(responseObj);
             if (jsonMsg != null) {
-                JSONObject assembleObj = new JSONObject();
 
-                assembleObj.put("os", jsonMsg.get("os"));
+                retObj.put("ComputerSystem", jsonMsg.get("ComputerSystem"));
 
-                JSONObject computerSystem = (JSONObject) JSONObject.toJSON(jsonMsg.get("ComputerSystem"));
-                if (computerSystem != null)
-                    assembleObj.put("ComputerSystem_baseboard", computerSystem.get("baseboard"));
-
-                JSONObject CPU = (JSONObject) JSONObject.toJSON(jsonMsg.get("CPU"));
-                if (CPU != null) {
-                    assembleObj.put("CPU_processorID", CPU.get("processorID"));
-                    assembleObj.put("CPU_name", CPU.get("name"));
-                    assembleObj.put("CPU_logicalProcessorCount", CPU.get("logicalProcessorCount"));
+                Object soundCards = jsonMsg.get("SoundCards");
+                if (soundCards != null) {
+                    retObj.put("SoundCards", soundCards);
                 }
-                retObj.put("device_fingerprint", assembleObj.toJSONString());
+
+                Object processorObj = jsonMsg.get("CPU");
+                if (processorObj != null) {
+                    JSONObject processor = (JSONObject) JSONObject.toJSON(processorObj);
+                    processor.remove("systemCpuLoadTicks");
+                    processor.remove("systemCpuLoadBetweenTicks");
+                    processor.remove("processorCpuLoadBetweenTicks");
+                    processor.remove("processorCpuLoadTicks");
+                    processor.remove("systemCpuLoad");
+                    processor.remove("systemUptime");
+                    processor.remove("contextSwitches");
+                    processor.remove("interrupts");
+                    retObj.put("CPU", processor);
+                }
+
+                Object networkObjs = jsonMsg.get("Network");
+                if (networkObjs != null) {
+                    JSONArray networkArray = (JSONArray) networkObjs;
+                    for(Object obj : networkArray) {
+                        JSONObject networkObj = (JSONObject) JSONObject.toJSON(obj);
+                        networkObj.remove("IPv4");
+                        networkObj.remove("IPv6");
+                        networkObj.remove("timeStamp");
+                    }
+
+                    retObj.put("Network", networkArray);
+                }
+
                 retObj.put("sys_type", System.getProperty("os.name"));
                 retObj.put("sys_version", System.getProperty("os.version"));
                 retObj.put("sys_name", System.getProperty("user.name"));
@@ -177,17 +203,25 @@ public class AuthenticateService {
     public Object authenticate() {
         JSONObject retObj = new JSONObject();
         try {
-            JSONObject jsonObj = new JSONObject();
-            jsonObj.put("authenticate", "success");
+            Object responseObj = assetInfoDataService.fetchAssetInfo("CPU");
 
-            String privateKey = this.readerCode(KEYSTORE_URL + KEYSTORE_NAME);
-            String symKey = this.readerCode(KEYSTORE_URL + SYM_KEY);
-            String encrypt = AESEncrypt.encrypt(jsonObj.toJSONString(), symKey);  // 加密
+            JSONObject jsonObj = (JSONObject) JSONObject.toJSON(responseObj);
+            if (jsonObj != null) {
+                jsonObj.put("authenticate", "success");
 
-            String sign = RSAEncrypt.sign(encrypt, new BASE64Decoder().decodeBuffer(privateKey));  // 签名
+                String plainData = jsonObj.toJSONString();
 
-            retObj.put("org_data", encrypt);
-            retObj.put("sign", sign);
+                String privateKey = this.readerCode(KEYSTORE_URL + KEYSTORE_NAME);
+                String symKey = this.readerCode(KEYSTORE_URL + SYM_KEY);
+                String encrypt = AESEncrypt.encrypt(plainData, symKey);  // 加密
+
+                String sign = RSAEncrypt.sign(encrypt, new BASE64Decoder().decodeBuffer(privateKey));  // 签名
+
+                retObj.put("plain_data", plainData);  // 明文
+                retObj.put("cipher_data", encrypt);  // 密文
+                retObj.put("sign", sign);
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }

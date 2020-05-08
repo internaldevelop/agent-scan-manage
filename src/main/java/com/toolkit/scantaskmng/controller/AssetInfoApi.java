@@ -71,4 +71,21 @@ public class AssetInfoApi {
         return assetInfoDataService.startTask(assetUuid, types, secondTime);
     }
 
+    /**
+     * 停止任务获取资源
+     * @param assetUuid
+     * @return
+     */
+    @GetMapping(value="/stop-task-acquire")
+    @ResponseBody
+    public Object stopGetNetwork(@RequestParam("asset_uuid") String assetUuid) {
+        return assetInfoDataService.stopTask(assetUuid);
+    }
+
+    @GetMapping(value="/verify-network")
+    @ResponseBody
+    public Object verifyNetwork() {
+        return responseHelper.success();
+    }
+
 }

@@ -16,7 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import oshi.SystemInfo;
-import oshi.hardware.HardwareAbstractionLayer;
+import oshi.hardware.*;
 import oshi.software.os.OperatingSystem;
 
 import java.util.*;
@@ -43,7 +43,7 @@ public class AssetInfoDataService {
     @Autowired
     ResponseHelper responseHelper;
 
-    private static String MAIN_SERVICE_NAME = "embed-terminal-dev";  //主服务名  fw-bend-server  embed-terminal
+    private static String MAIN_SERVICE_NAME = "embed-terminal";  //主服务名  fw-bend-server  embed-terminal
 
     @Bean
     public RestTemplate restTemplate() {
@@ -58,6 +58,7 @@ public class AssetInfoDataService {
 
     synchronized public Object fetchAssetInfo(String types) {
         SystemInfo si = new SystemInfo();
+        JSONObject jsonInfo = new JSONObject();
 
         HardwareAbstractionLayer hal = si.getHardware();
 
@@ -69,12 +70,19 @@ public class AssetInfoDataService {
             typeList = Arrays.asList(types.split(","));
         }
 
-        JSONObject jsonInfo = new JSONObject();
         OperatingSystem os = si.getOperatingSystem();
 
         jsonInfo.put("os", System.getProperty("os.name"));
 
         jsonInfo.put("ComputerSystem", OshiUtils.getComputerSystem(hal.getComputerSystem()));
+
+        if (bAll || typeList.contains("Displays")) {
+            jsonInfo.put("Displays", hal.getDisplays());
+        }
+
+        if (bAll || typeList.contains("SoundCards")) {
+            jsonInfo.put("SoundCards", hal.getSoundCards());
+        }
 
         if (bAll || typeList.contains("CPU")) {
             jsonInfo.put("CPU", hal.getProcessor());
@@ -265,6 +273,7 @@ public class AssetInfoDataService {
 
                 }
             } catch (Exception e) {
+                stopTask(assetUuid);
                 e.printStackTrace();
             }
         }
