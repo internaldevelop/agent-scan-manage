@@ -22,7 +22,7 @@ public class AuthenticateApi {
     }
 
     /**
-     * 1.4 设备指纹信息获取
+     * 1.4 设备公钥信息获取
      * @return
      */
     @GetMapping(value="/get-public-key")

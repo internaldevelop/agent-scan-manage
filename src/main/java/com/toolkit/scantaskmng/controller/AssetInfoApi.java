@@ -53,8 +53,8 @@ public class AssetInfoApi {
      */
     @GetMapping(value = "/get-resources")
     @ResponseBody
-    public Object getResources(@RequestParam("types") String types) {
-        return assetInfoDataService.getAssetInfo(types);
+    public Object getResources(@RequestParam("types") String types, @RequestParam("detail") String detail) {
+        return assetInfoDataService.getAssetInfo(types, detail);
     }
 
     /**
@@ -67,8 +67,9 @@ public class AssetInfoApi {
     @ResponseBody
     public Object startTaskAcquire(@RequestParam("asset_uuid") String assetUuid,
                                    @RequestParam("types") String types,
-                                   @RequestParam("second_time") String secondTime) {
-        return assetInfoDataService.startTask(assetUuid, types, secondTime);
+                                   @RequestParam("second_time") String secondTime,
+                                   @RequestParam("detail") String detail) {
+        return assetInfoDataService.startTask(assetUuid, types, secondTime, detail);
     }
 
     /**

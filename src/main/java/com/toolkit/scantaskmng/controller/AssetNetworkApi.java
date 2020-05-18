@@ -44,8 +44,9 @@ public class AssetNetworkApi {
     @ResponseBody
     public Object getNetwork(@RequestParam("asset_uuid") String assetUuid,
                              @RequestParam("types") String types,
-                             @RequestParam("second_time") String secondTime) {
-        return assetInfoDataService.startNetworkTask(assetUuid, types, secondTime);
+                             @RequestParam("second_time") String secondTime,
+                             @RequestParam("detail") String detail) {
+        return assetInfoDataService.startNetworkTask(assetUuid, types, secondTime, detail);
     }
 
     /**
@@ -55,8 +56,28 @@ public class AssetNetworkApi {
      */
     @GetMapping(value="/stop-get-network")
     @ResponseBody
-    public Object stopGetNetwork(@RequestParam("asset_uuid") String assetUuid) {
+    public Object GetNetwork(@RequestParam("asset_uuid") String assetUuid) {
         return assetInfoDataService.stopNetWorkTask(assetUuid);
     }
+
+    /**
+     * 启动抓取数据包
+     * @param assetUuid
+     * @return
+     */
+    @GetMapping(value="/start-get-packet")
+    @ResponseBody
+    public Object startGetPacket(@RequestParam("asset_uuid") String assetUuid,
+                                 @RequestParam(required = false, value = "second_time") String secondTime) {
+        return assetNetworkService.startGetPacket(assetUuid, secondTime);
+    }
+
+    @GetMapping(value="/stop-get-packet")
+    @ResponseBody
+    public Object stopGetPacket(@RequestParam("asset_uuid") String assetUuid) {
+        return assetNetworkService.stopGetPacket(assetUuid);
+    }
+
+
 
 }

@@ -35,7 +35,7 @@ public class AssetInfoDataService {
 
     public static List<TimerTask> networkTaskList = new ArrayList<>();  // 流量任务
 
-    RestTemplate restTemplate = new RestTemplate();
+    public RestTemplate restTemplate = new RestTemplate();
 
     @Value("${main.service.ip}")
     public String mainServiceIp;
@@ -43,12 +43,15 @@ public class AssetInfoDataService {
     @Autowired
     ResponseHelper responseHelper;
 
-    private static String MAIN_SERVICE_NAME = "embed-terminal";  //主服务名  fw-bend-server  embed-terminal
+    @Value("${main.service.name}")
+    private String MAIN_SERVICE_NAME;  //主服务名 embed-terminal
 
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
+
+
 
     @Data
     private class TimerTask {
@@ -56,7 +59,7 @@ public class AssetInfoDataService {
         private String assetUuid;
     }
 
-    synchronized public Object fetchAssetInfo(String types) {
+    synchronized public Object fetchAssetInfo(String types, boolean detailFlag) {
         SystemInfo si = new SystemInfo();
         JSONObject jsonInfo = new JSONObject();
 
@@ -85,11 +88,10 @@ public class AssetInfoDataService {
         }
 
         if (bAll || typeList.contains("CPU")) {
-            jsonInfo.put("CPU", hal.getProcessor());
+            jsonInfo.put("CPU", OshiUtils.getCPUInfo(hal.getProcessor(), detailFlag));
         }
-
         if (bAll || typeList.contains("Memory")) { // 内存
-            jsonInfo.put("Memory", hal.getMemory());
+            jsonInfo.put("Memory", OshiUtils.getMemoryInfo(hal.getMemory(), detailFlag));
         }
 
         if (bAll || typeList.contains("Sensors")) { // 传感器
@@ -101,7 +103,7 @@ public class AssetInfoDataService {
         }
 
         if (bAll || typeList.contains("Disks")) { // 磁盘
-            jsonInfo.put("Disks", OshiUtils.getDiskInfo(os));
+            jsonInfo.put("Disks", OshiUtils.getDiskInfo(os, detailFlag));
         }
 
         if (bAll || typeList.contains("Network")) { // 网络接口
@@ -126,10 +128,10 @@ public class AssetInfoDataService {
      * @param secondTimeStr 每secondTimeStr秒执行一次
      * @return
      */
-    public boolean startTask(String assetUuid, String infoTypes, String secondTimeStr) {
+    public boolean startTask(String assetUuid, String infoTypes, String secondTimeStr, String detail) {
         // 未指定信息类别时，默认收集CPU使用率和内存使用率
-        if (!StringUtils.isValid(infoTypes))
-            infoTypes = "CPU,Memory,Disks";
+//        if (!StringUtils.isValid(infoTypes))
+//            infoTypes = "CPU,Memory,Disks";
 
         // 每secondTime秒执行一次
         long secondTime = 3;
@@ -141,7 +143,6 @@ public class AssetInfoDataService {
         if (!StringUtils.isValid(assetUuid))
             assetUuid = "localhost";
 
-        if ("".equals(infoTypes))
         rmList(timerTaskList, assetUuid);  //先停止assetUuid任务
 
 
@@ -149,6 +150,7 @@ public class AssetInfoDataService {
         MyRunnable runnable = new MyRunnable();
         runnable.setAssetUuid(assetUuid);
         runnable.setInfoTypes(infoTypes);
+        runnable.setDetailFlag("1".equals(detail) ? true : false);
 
         //0延时，每secondTime秒执行下future的任务
         ScheduledFuture<?> future = threadPoolTaskScheduler.scheduleAtFixedRate(runnable, 0, secondTime, TimeUnit.SECONDS);
@@ -172,7 +174,7 @@ public class AssetInfoDataService {
      * @param secondTimeStr 每secondTimeStr秒执行一次
      * @return
      */
-    public boolean startNetworkTask(String assetUuid, String infoTypes, String secondTimeStr) {
+    public boolean startNetworkTask(String assetUuid, String infoTypes, String secondTimeStr, String detail) {
         // 未指定信息类别时，默认收集CPU使用率和内存使用率
         if (!StringUtils.isValid(infoTypes))
             infoTypes = "Network";
@@ -194,6 +196,7 @@ public class AssetInfoDataService {
         NetworkRunnable runnable = new NetworkRunnable();
         runnable.setAssetUuid(assetUuid);
         runnable.setInfoTypes(infoTypes);
+        runnable.setDetailFlag("1".equals(detail) ? true : false);
 
         //0延时，每secondTime秒执行下future的任务
         ScheduledFuture<?> future = threadPoolTaskScheduler.scheduleAtFixedRate(runnable, 0, secondTime, TimeUnit.SECONDS);
@@ -250,11 +253,12 @@ public class AssetInfoDataService {
     private class MyRunnable implements Runnable {
         private String assetUuid ;
         private String infoTypes;
+        private boolean detailFlag;
 
         @Override
         public void run() {
             try {
-                Object responseObj = fetchAssetInfo(this.infoTypes);
+                Object responseObj = fetchAssetInfo(this.infoTypes, this.detailFlag);
 
                 if (responseObj != null) {
                     String url = "http://" + mainServiceIp + ":10110/" + MAIN_SERVICE_NAME + "/resources/setdata?datas={datas}&asset_uuid={asset_uuid}";
@@ -283,11 +287,12 @@ public class AssetInfoDataService {
     private class NetworkRunnable implements Runnable {
         private String assetUuid ;
         private String infoTypes;
+        private boolean detailFlag;
 
         @Override
         public void run() {
             try {
-                Object responseObj = fetchAssetInfo(this.infoTypes);
+                Object responseObj = fetchAssetInfo(this.infoTypes, this.detailFlag);
                 JSONObject jsonObj = (JSONObject) JSONObject.toJSON(responseObj);
                 Object networkInfo = jsonObj.get("Network");
 
@@ -318,8 +323,9 @@ public class AssetInfoDataService {
      * @param types
      * @return
      */
-    public Object getAssetInfo(String types) {
-        Object retObj = fetchAssetInfo(types);
+    public Object getAssetInfo(String types, String detail) {
+        boolean detailFlag = "1".equals(detail) ? true : false;
+        Object retObj = fetchAssetInfo(types, detailFlag);
         return responseHelper.success(retObj);
     }
 

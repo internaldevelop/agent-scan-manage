@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import oshi.software.os.OSFileStore;
 import sun.misc.BASE64Decoder;
 
 import java.io.*;
@@ -52,11 +53,11 @@ public class AuthenticateService {
         JSONObject retObj = new JSONObject();
 
         if (!StringUtils.isValid(types)) {
-            types = "CPU,Network,SoundCards,Disks";  // 硬件、OS系统、应用软件（可选）、服务、网络（不含IP）、配置
+            types = "CPU,Network,SoundCards,Disks,Memory";  // 硬件、OS系统、应用软件（可选）、服务、网络（不含IP）、配置
         }
 
         try {
-            Object responseObj = assetInfoDataService.fetchAssetInfo(types);
+            Object responseObj = assetInfoDataService.fetchAssetInfo(types, true);
 
             JSONObject jsonMsg = (JSONObject) JSONObject.toJSON(responseObj);
             if (jsonMsg != null) {
@@ -79,6 +80,8 @@ public class AuthenticateService {
                     processor.remove("systemUptime");
                     processor.remove("contextSwitches");
                     processor.remove("interrupts");
+                    processor.remove("usedPercentTotal");
+                    processor.remove("freePercentTotal");
                     retObj.put("CPU", processor);
                 }
 
@@ -89,10 +92,55 @@ public class AuthenticateService {
                         JSONObject networkObj = (JSONObject) JSONObject.toJSON(obj);
                         networkObj.remove("IPv4");
                         networkObj.remove("IPv6");
+                        networkObj.remove("packetsRecv");
+                        networkObj.remove("bytesRecv");
+                        networkObj.remove("packetsSent");
+                        networkObj.remove("bytesSent");
                         networkObj.remove("timeStamp");
                     }
 
                     retObj.put("Network", networkArray);
+                }
+
+                Object disksObj = jsonMsg.get("Disks");
+                if (disksObj != null) {
+                    JSONObject disk = (JSONObject) JSONObject.toJSON(disksObj);
+                    disk.remove("usedPercentTotal");
+                    disk.remove("freePercentTotal");
+                    disk.remove("freeTotal");
+                    disk.remove("usedTotal");
+                    disk.remove("");
+
+                    Object fileStoreObjs = disk.get("fileStores");
+                    if (fileStoreObjs != null) {
+
+                        OSFileStore[] fileStores = (OSFileStore[]) fileStoreObjs;
+                        disk.remove("fileStores");
+
+                        JSONArray fileStoreArray = new JSONArray();
+                        for(OSFileStore obj : fileStores) {
+                            JSONObject fileStoreObj = (JSONObject) JSONObject.toJSON(obj);
+                            fileStoreObj.remove("usableSpace");
+                            fileStoreObj.remove("totalSpace");
+                            fileStoreArray.add(fileStoreObj);
+                        }
+
+                        disk.put("fileStores", fileStoreArray);
+                    }
+
+                    retObj.put("Disks", disk);
+                }
+
+                Object memoryObj = jsonMsg.get("Memory");
+                if (memoryObj != null) {
+                    JSONObject memory = (JSONObject) JSONObject.toJSON(memoryObj);
+                    memory.remove("usedPercentTotal");
+                    memory.remove("freePercentTotal");
+                    memory.remove("swapUsed");
+                    memory.remove("available");
+                    memory.remove("swapPagesIn");
+
+                    retObj.put("Memory", memory);
                 }
 
                 retObj.put("sys_type", System.getProperty("os.name"));
@@ -203,7 +251,7 @@ public class AuthenticateService {
     public Object authenticate() {
         JSONObject retObj = new JSONObject();
         try {
-            Object responseObj = assetInfoDataService.fetchAssetInfo("CPU");
+            Object responseObj = assetInfoDataService.fetchAssetInfo("CPU", true);
 
             JSONObject jsonObj = (JSONObject) JSONObject.toJSON(responseObj);
             if (jsonObj != null) {
