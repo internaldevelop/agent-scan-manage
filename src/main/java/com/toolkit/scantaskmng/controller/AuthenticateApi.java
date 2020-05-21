@@ -17,8 +17,9 @@ public class AuthenticateApi {
      */
     @GetMapping(value="/get-fingerprint")
     @ResponseBody
-    public Object getFingerprint(@RequestParam(required = false, value = "types") String types) {
-        return authenticateService.getFingerprint(types);
+    public Object getFingerprint(@RequestParam(required = false, value = "types") String types,
+                                 @RequestParam("asset_uuid") String assetUuid) {
+        return authenticateService.getFingerprint(assetUuid, types);
     }
 
     /**

@@ -11,7 +11,7 @@ import com.toolkit.scantaskmng.global.utils.StringUtils;
 import jpcap.JpcapCaptor;
 import jpcap.NetworkInterface;
 import jpcap.PacketReceiver;
-import jpcap.packet.Packet;
+import jpcap.packet.*;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,7 +184,92 @@ public class AssetNetworkService {
          * @param packet
          */
         public void receivePacket(Packet packet) {
+            JSONObject objRet = new JSONObject();
 
+            String sourceIp = "";  // 源IP
+            String sourcePort = "";  // 源端口
+            String destIp = "";  // 目的IP
+            String destPort = "";  // 目的端口
+            String transportProtocol = "";  // 传输协议
+            String appProtocol = "";  // 应用协议
+
+            boolean isKnow = true;
+
+            //Tcp包,在java Socket中只能得到负载数据
+            if (packet instanceof TCPPacket) {
+                TCPPacket p = (TCPPacket) packet;
+
+                sourceIp = "" + p.src_ip;  // 源IP
+                sourcePort = "" + p.src_port;  // 源端口
+                destIp = "" + p.dst_ip;  // 目的IP
+                destPort = "" + p.dst_port;  // 目的端口
+                transportProtocol = "TCP";  // 传输协议
+                appProtocol = "";  // 应用协议
+
+                JSONObject s1 = (JSONObject) JSONObject.toJSON(packet);
+                System.out.println("TCP=============" + s1);
+
+            } else if (packet instanceof UDPPacket) {  // UDP包,开着QQ,你就会看到:它是tcp+udp
+                UDPPacket p = (UDPPacket) packet;
+
+                sourceIp = "" + p.src_ip;  // 源IP
+                sourcePort = "" + p.src_port;  // 源端口
+                destIp = "" + p.dst_ip;  // 目的IP
+                destPort = "" + p.dst_port;  // 目的端口
+                transportProtocol = "UDP";  // 传输协议
+                appProtocol = "";  // 应用协议
+
+                String s1 = JSONObject.toJSONString(p);
+                System.out.println("UDP=============" + s1);
+
+            } else if (packet instanceof ICMPPacket) {  //如果你要在程序中构造一个ping报文,就要构建ICMPPacket包
+                ICMPPacket p = (ICMPPacket) packet;
+
+                sourceIp = "" + p.src_ip;  // 源IP
+                destIp = "" + p.dst_ip;  // 目的IP
+                transportProtocol = "ICMP";  // 传输协议
+                appProtocol = "";  // 应用协议
+
+                JSONObject s1 = (JSONObject) JSONObject.toJSON(packet);
+                System.out.println("ICMP=============" + s1);
+
+            } else if (packet instanceof ARPPacket) {  //是否地址转换协议请求包
+                ARPPacket p = (ARPPacket) packet;
+
+                sourceIp = "" + p.getSenderProtocolAddress();  // 源IP
+                destIp = "" + p.getTargetProtocolAddress();  // 目的IP
+                transportProtocol = "ARP";  // 传输协议
+                appProtocol = "";  // 应用协议
+
+
+                JSONObject s1 = (JSONObject) JSONObject.toJSON(packet);
+                System.out.println("ARP=============" + s1);
+
+            } else if (packet instanceof IPPacket) {
+                IPPacket p = (IPPacket) packet;
+
+                sourceIp = "" + p.src_ip;  // 源IP
+                destIp = "" + p.dst_ip;  // 目的IP
+                transportProtocol = "IP";  // 传输协议
+                appProtocol = "";  // 应用协议
+
+                JSONObject s1 = (JSONObject) JSONObject.toJSON(p);
+                System.out.println("IP=============" + s1);
+            } else {
+                isKnow = false;
+            }
+
+            if (isKnow) {
+                objRet.put("source_ip", sourceIp);  // 源IP
+                objRet.put("source_port", sourcePort);  // 源端口
+                objRet.put("dest_ip", destIp);  // 目的IP
+                objRet.put("dest_port", destPort);  // 目的端口
+                objRet.put("transport_protocol", transportProtocol);  // 传输协议
+                objRet.put("app_protocol", appProtocol);  // 应用协议
+                objRet.put("src_data", packet);
+
+                setData(assetUuid, objRet);
+            }
         }
 
         public boolean setData (String assetUuid, Object obj) {
@@ -217,14 +302,18 @@ public class AssetNetworkService {
     private class NetworkRunnable implements Runnable {
         private String assetUuid;
 
+
         @Override
         public void run() {
+            System.out.println("进入NetworkRunnable run.......");
+
             JpcapCaptor jpcap = null;
             try{
                 //获取本机上的网络接口对象数组
-                final  NetworkInterface[] devices = JpcapCaptor.getDeviceList();
-                if (devices.length > 0) {
-                    NetworkInterface nc=devices[1];
+                final NetworkInterface[] devices = JpcapCaptor.getDeviceList();
+                int devicesLength = devices.length;
+
+                for (NetworkInterface nc : devices) {
                     // 捕获数据包(需要打开的网卡实例,一次捕获数据包的最大byte数,是否采用混乱模式,捕获的数据包的超时设置)
                     jpcap = JpcapCaptor.openDevice(nc, 1, false, 20);
                     MyPacketReceiver packetReceiver = new MyPacketReceiver();
@@ -232,12 +321,39 @@ public class AssetNetworkService {
                     packetReceiver.setAssetUuid(assetUuid);
 
                     //一次接包个数(个数到时产生回调),回调者
-                    jpcap.loopPacket(1, packetReceiver);
+                    jpcap.loopPacket(-1, packetReceiver);
+                }
 
+//                if (devicesLength == 1) {
+//                    NetworkInterface nc=devices[0];
+//                    // 捕获数据包(需要打开的网卡实例,一次捕获数据包的最大byte数,是否采用混乱模式,捕获的数据包的超时设置)
+//                    jpcap = JpcapCaptor.openDevice(nc, 1, false, 20);
+//                    MyPacketReceiver packetReceiver = new MyPacketReceiver();
+//
+//                    packetReceiver.setAssetUuid(assetUuid);
+//
+//                    //一次接包个数(个数到时产生回调),回调者
+//                    jpcap.loopPacket(1, packetReceiver);
+//
+//                } else if (devicesLength > 1) {
+//                    NetworkInterface nc=devices[1];
+//                    // 捕获数据包(需要打开的网卡实例,一次捕获数据包的最大byte数,是否采用混乱模式,捕获的数据包的超时设置)
+//                    jpcap = JpcapCaptor.openDevice(nc, 1, false, 20);
+//                    MyPacketReceiver packetReceiver = new MyPacketReceiver();
+//
+//                    packetReceiver.setAssetUuid(assetUuid);
+//
+//                    //一次接包个数(个数到时产生回调),回调者
+//                    jpcap.loopPacket(1, packetReceiver);
+//
+//                }
+
+                System.out.println("devices.length=" + devices.length);
+                logger.info("devices.length=" + devices.length);
+
+                if (jpcap != null) {
                     jpcap.breakLoop();
                     jpcap.close();
-                } else {
-                    logger.info("devices.length=" + devices.length);
                 }
 
             }catch(Exception e){

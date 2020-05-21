@@ -22,18 +22,18 @@ public class OshiUtils {
             }
 
             long allTotal = 0;
-            long usedTotal = 0;
+            long freeTotal = 0;
             for (OSFileStore fs : fileStores) {
                 allTotal += fs.getTotalSpace();
-                usedTotal += fs.getUsableSpace();
+                freeTotal += fs.getUsableSpace();  // 可使用空间
             }
 
             jsonObject.put("allTotal", allTotal);
-            jsonObject.put("usedTotal", usedTotal);
-            jsonObject.put("freeTotal", allTotal - usedTotal);
-            Double usedPercentTotal = 100D * usedTotal / allTotal;   //总磁盘使用率
-            jsonObject.put("usedPercentTotal", String.format(" %.2f", usedPercentTotal));
-            jsonObject.put("freePercentTotal", String.format(" %.2f", (100 - usedPercentTotal)));
+            jsonObject.put("usedTotal", allTotal - freeTotal);
+            jsonObject.put("freeTotal", freeTotal);
+            Double freePercentTotal = 100D * freeTotal / allTotal;   //总磁盘空闲率
+            jsonObject.put("usedPercentTotal", String.format(" %.2f", (100 - freePercentTotal)));
+            jsonObject.put("freePercentTotal", String.format(" %.2f", freePercentTotal));
 
         } catch (Exception e) {
             e.printStackTrace();

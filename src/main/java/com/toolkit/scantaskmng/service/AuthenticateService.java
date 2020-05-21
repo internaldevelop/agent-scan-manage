@@ -2,25 +2,26 @@ package com.toolkit.scantaskmng.service;
 
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-//import com.sun.org.apache.xml.internal.security.utils.Base64;
-//import java.util.Base64;
 import com.toolkit.scantaskmng.global.algorithm.AESEncrypt;
 import com.toolkit.scantaskmng.global.algorithm.Base64Coding;
 import com.toolkit.scantaskmng.global.algorithm.RSAEncrypt;
 import com.toolkit.scantaskmng.global.enumeration.ErrorCodeEnum;
 import com.toolkit.scantaskmng.global.response.ResponseHelper;
+import com.toolkit.scantaskmng.global.response.ResponseStrBean;
 import com.toolkit.scantaskmng.global.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import oshi.software.os.OSFileStore;
 import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 
 import java.io.*;
-import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -32,28 +33,37 @@ public class AuthenticateService {
 
     private static final String CHARSET_UDT8 = "UTF-8";  // 编码格式
 
-    @Autowired
-    RestTemplate restTemplate;
+    private static RestTemplate restTemplate = new RestTemplate();
 
     @Value("${main.service.ip}")
     public String mainServiceIp;
 
+    @Value("${main.service.name}")
+    private String MAIN_SERVICE_NAME;  //主服务名 embed-terminal
+
     @Autowired
     ResponseHelper responseHelper;
 
-    private String KEYSTORE_URL = "./sign_file/";  // 秘钥路径
-    private String KEYSTORE_NAME = "keystore";  // 秘钥文件名称
-    private String SYM_KEY = "symkey";  // 秘钥文件名称
+    private static String KEYSTORE_URL = "./sign_file/";  // 秘钥路径
+    private static String KEYSTORE_NAME = "keystore";  // 秘钥文件名称
+    private static String SYM_KEY = "symkey";  // 秘钥文件名称
+    private static String ASSET_UUID = "uuid";  // 设备uuid
 
     /**
      * 设备指纹信息获取
      * @return
      */
-    public Object getFingerprint(String types) {
+    public Object getFingerprint(String assetUuid, String types) {
         JSONObject retObj = new JSONObject();
 
         if (!StringUtils.isValid(types)) {
             types = "CPU,Network,SoundCards,Disks,Memory";  // 硬件、OS系统、应用软件（可选）、服务、网络（不含IP）、配置
+        }
+        try {
+            if (StringUtils.isValid(assetUuid))
+                this.createWrite(KEYSTORE_URL, ASSET_UUID, assetUuid);  // 保存asset_uuid  写入文件
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         try {
@@ -97,6 +107,7 @@ public class AuthenticateService {
                         networkObj.remove("packetsSent");
                         networkObj.remove("bytesSent");
                         networkObj.remove("timeStamp");
+                        networkObj.remove("speed");
                     }
 
                     retObj.put("Network", networkArray);
@@ -249,11 +260,21 @@ public class AuthenticateService {
      * @return
      */
     public Object authenticate() {
+        JSONObject authenticateData = this.getAuthenticateData(assetInfoDataService);
+        return responseHelper.success(authenticateData);
+    }
+
+    /**
+     * 获取认证数据
+     * @return
+     */
+    public JSONObject getAuthenticateData (AssetInfoDataService service) {
         JSONObject retObj = new JSONObject();
         try {
-            Object responseObj = assetInfoDataService.fetchAssetInfo("CPU", true);
+            Object responseObj = service.fetchAssetInfo("CPU", true);
 
             JSONObject jsonObj = (JSONObject) JSONObject.toJSON(responseObj);
+
             if (jsonObj != null) {
                 jsonObj.put("authenticate", "success");
 
@@ -263,18 +284,26 @@ public class AuthenticateService {
                 String symKey = this.readerCode(KEYSTORE_URL + SYM_KEY);
                 String encrypt = AESEncrypt.encrypt(plainData, symKey);  // 加密
 
-                String sign = RSAEncrypt.sign(encrypt, new BASE64Decoder().decodeBuffer(privateKey));  // 签名
-
+                BASE64Decoder base64Decoder = new BASE64Decoder();
+                BASE64Encoder base = new BASE64Encoder();
+                String sign = RSAEncrypt.sign(encrypt, base64Decoder.decodeBuffer(privateKey));  // 签名
                 retObj.put("plain_data", plainData);  // 明文
                 retObj.put("cipher_data", encrypt);  // 密文
                 retObj.put("sign", sign);
+                try {
+//                    retObj.put("plain_data", Base64Coding.encode(plainData.getBytes("utf-8")));  // 明文
+//                    retObj.put("cipher_data", Base64Coding.encode(encrypt.getBytes("utf-8")));  // 密文
+//                    retObj.put("sign", Base64Coding.encode(sign.getBytes("utf-8")));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return responseHelper.success(retObj);
+        return retObj;
     }
 
     /**
@@ -290,5 +319,49 @@ public class AuthenticateService {
         }
 
         return responseHelper.success();
+    }
+
+    /**
+     * 获取设备uuid
+     * @return
+     */
+    public String getUuid(){
+        return this.readerCode(KEYSTORE_URL + ASSET_UUID);
+    }
+
+    /**
+     * 主动认证
+     */
+    public boolean autoAuthenticate (String serviceIp, String serviceName) {
+
+
+        ResponseEntity<ResponseStrBean> responseEntity = null;
+
+        try {
+            String assetUuid = this.getUuid();
+
+            if (StringUtils.isValid(assetUuid)) {
+                JSONObject authenticateData = this.getAuthenticateData(new AssetInfoDataService());
+
+                String url = "http://" + serviceIp + ":10110/" + serviceName + "/authenticate/agent-authenticate?datas={datas}&asset_uuid={asset_uuid}";
+
+                Map<String, Object> param = new HashMap<>();
+                String datas = authenticateData.toJSONString();
+                param.put("datas", Base64Coding.encode(datas.getBytes("utf-8")));
+                param.put("asset_uuid", assetUuid);
+
+                responseEntity = restTemplate.getForEntity(url, ResponseStrBean.class, param);
+                ResponseStrBean responseBean = (ResponseStrBean)responseEntity.getBody();
+
+                if (ErrorCodeEnum.ERROR_OK.name().equals(responseBean.getCode())) {
+                    return true;
+                }
+
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
     }
 }
