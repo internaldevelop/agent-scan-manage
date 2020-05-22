@@ -332,9 +332,7 @@ public class AuthenticateService {
     /**
      * 主动认证
      */
-    public boolean autoAuthenticate (String serviceIp, String serviceName) {
-
-
+    public boolean autoAuthenticate () {
         ResponseEntity<ResponseStrBean> responseEntity = null;
 
         try {
@@ -343,7 +341,7 @@ public class AuthenticateService {
             if (StringUtils.isValid(assetUuid)) {
                 JSONObject authenticateData = this.getAuthenticateData(new AssetInfoDataService());
 
-                String url = "http://" + serviceIp + ":10110/" + serviceName + "/authenticate/agent-authenticate?datas={datas}&asset_uuid={asset_uuid}";
+                String url = "http://" + mainServiceIp + ":10110/" + MAIN_SERVICE_NAME + "/authenticate/agent-authenticate?datas={datas}&asset_uuid={asset_uuid}";
 
                 Map<String, Object> param = new HashMap<>();
                 String datas = authenticateData.toJSONString();

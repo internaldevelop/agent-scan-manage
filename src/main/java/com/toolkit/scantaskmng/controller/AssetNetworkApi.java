@@ -67,17 +67,8 @@ public class AssetNetworkApi {
      */
     @GetMapping(value="/start-get-packet")
     @ResponseBody
-    public Object startGetPacket(@RequestParam("asset_uuid") String assetUuid,
-                                 @RequestParam(required = false, value = "second_time") String secondTime) {
-        return assetNetworkService.startGetPacket(assetUuid, secondTime);
+    public Object startGetPacket(@RequestParam("asset_uuid") String assetUuid) {
+        return assetNetworkService.startGetPacket(assetUuid);
     }
-
-    @GetMapping(value="/stop-get-packet")
-    @ResponseBody
-    public Object stopGetPacket(@RequestParam("asset_uuid") String assetUuid) {
-        return assetNetworkService.stopGetPacket(assetUuid);
-    }
-
-
 
 }

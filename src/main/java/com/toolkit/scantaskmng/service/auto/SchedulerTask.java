@@ -3,6 +3,7 @@ package com.toolkit.scantaskmng.service.auto;
 import com.toolkit.scantaskmng.service.AuthenticateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -12,11 +13,8 @@ public class SchedulerTask {
 
     protected Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Value("${main.service.ip}")
-    public String mainServiceIp;
-
-    @Value("${main.service.name}")
-    private String MAIN_SERVICE_NAME;  //主服务名 embed-terminal
+    @Autowired
+    private AuthenticateService authenticateService;
 
 //    每隔5秒执行一次：*/5 * * * * ?
 //    每隔1分钟执行一次：0 */1 * * * ?
@@ -30,9 +28,8 @@ public class SchedulerTask {
 
     @Scheduled(cron = "0 0 1 * * ?")
     public void authenticate(){
-        logger.info("自动认证start ip:" + mainServiceIp + " service_name:" + MAIN_SERVICE_NAME);
-        AuthenticateService authenticateService = new AuthenticateService();
-        boolean authenticateFlag = authenticateService.autoAuthenticate(mainServiceIp, MAIN_SERVICE_NAME);
+        logger.info("自动认证......");
+        boolean authenticateFlag = authenticateService.autoAuthenticate();
         logger.info("认证结果:" + authenticateFlag);
 
     }
